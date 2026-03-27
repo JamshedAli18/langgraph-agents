@@ -14,6 +14,7 @@ class PromptChainState(TypedDict):
     topic : str
     outline: str
     content: str
+    rating : float
 
 def generate_outline(state: PromptChainState) -> PromptChainState:
     topic = state["topic"]
@@ -28,15 +29,24 @@ def generate_content(state: PromptChainState) -> PromptChainState:
     
     return state | {"content": content}
 
+def generate_rating(state: PromptChainState) -> PromptChainState:
+    #genrating rating from 1 to 10 based on writing
+
+    rating = groq_model.invoke(f"Generate rating for blog on the topic: {state['topic']} with outline: {state['outline']} and content: {state['content']}").content
+    
+    return state | {"rating": rating}
+
 
 graph = StateGraph(PromptChainState)
 
 graph.add_node("generate_outline",generate_outline)
 graph.add_node("generate_content",generate_content)
+graph.add_node("generate_rating",generate_rating)
 
 graph.add_edge(START,"generate_outline")
 graph.add_edge("generate_outline","generate_content")
-graph.add_edge("generate_content",END)
+graph.add_edge("generate_content","generate_rating")
+graph.add_edge("generate_rating",END)
 
 graph = graph.compile()
 
